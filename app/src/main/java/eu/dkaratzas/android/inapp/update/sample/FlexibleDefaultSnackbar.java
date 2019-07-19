@@ -60,13 +60,21 @@ public class FlexibleDefaultSnackbar extends AppCompatActivity implements Update
 
     }
 
+    // InAppUpdateHandler implementation
+
     @Override
     public void onUpdateError(int code, Throwable error) {
+        /*
+         * Called when some error occurred. See Constants class for more details
+         */
         Log.d(TAG, "code: " + code, error);
     }
 
     @Override
     public void onStatusUpdate(UpdateStatus status) {
+        /*
+         * Called when the update status change occurred. See Constants class for more details
+         */
         Log.d(TAG, "status: " + status.id());
     }
 }

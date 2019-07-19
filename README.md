@@ -39,25 +39,25 @@ There are two update modes.
 <img src="https://developer.android.com/images/app-bundle/flexible_flow.png" alt="" width="825"></p>
 * With default user confirmation, the UpdateManager is monitoring the flexible update state, provide a default SnackBar that informs the user that installation is ready and requests user confirmation to restart the app.
 ```java
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
 
-        UpdateManager updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.FLEXIBLE)
-                .setUseDefaultSnackbar(true) //default is true
-                .setSnackBarMessage("An update has just been downloaded.")
-                .setSnackBarAction("RESTART")
-                .setHandler(this);
+    UpdateManager updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+            .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+            .setMode(UpdateMode.FLEXIBLE)
+            .setUseDefaultSnackbar(true) //default is true
+            .setSnackBarMessage("An update has just been downloaded.")
+            .setSnackBarAction("RESTART")
+            .setHandler(this);
 
-        updateManager.checkForAppUpdate();
-    }
+    updateManager.checkForAppUpdate();
+}
 ```  
 
 * With custom user confirmation, need to set the `setUseDefaultSnackbar(false)` and monitor the update for the `UpdateStatus.DOWNLOADED` status.
-Then a notification (or some other UI indication) can be used, to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must call the `updateManager.completeUpdate();` method to finish the update.
+Then a notification (or some other UI indication) can be used, to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must call the `completeUpdate()` method to finish the update.
 ```java
 public class FlexibleWithCustomSnackbar extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
     private static final int REQ_CODE_VERSION_UPDATE = 530;
@@ -72,7 +72,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
         updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .setMode(UpdateMode.FLEXIBLE)
-                //default is true. If is set to false you,
+                // default is true. If is set to false you,
                 // have to manage the user confirmation when
                 // you detect the InstallStatus.DOWNLOADED status,
                 .setUseDefaultSnackbar(false)
@@ -81,6 +81,8 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
         updateManager.checkForAppUpdate();
     }
 
+    // InAppUpdateHandler implementation
+    
     @Override
     public void onStatusUpdate(UpdateStatus status) {
         if (status == UpdateStatus.DOWNLOADED) {
@@ -111,14 +113,44 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
 ## Immediate
 
 <img src="https://developer.android.com/images/app-bundle/immediate_flow.png" alt="" width="528"></p>
-```java
-    updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.IMMEDIATE);
 
-    updateManager.checkForAppUpdate();
+To perform an Immediate update,  needs only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
+```java
+updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+      .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+      .setMode(UpdateMode.IMMEDIATE);
+
+updateManager.checkForAppUpdate();
 ``` 
 
+---
+
+**Note:** You can listen to the `onActivityResult()` callback to know if you need to request another update in case of a failure.
+
+```java
+@Override
+protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    if (requestCode == REQ_CODE_VERSION_UPDATE) {
+        if (resultCode != RESULT_OK) {
+            // If the update is cancelled or fails,
+            // you can request to start the update again.
+            updateManager.checkForAppUpdate();
+            
+            Log.d(TAG, "Update flow failed! Result code: " + resultCode);
+        }
+    }
+}
+```
+
+## Troubleshoot
+-   In-app updates works only with devices running Android 5.0 (API level 21) or higher.
+-   Testing this won’t work on a debug build. You would need a release build signed with the same key you use to sign your app before uploading to the Play Store. It would be a good time to use the internal testing track.
+-   In-app updates are available only to user accounts that own the app. So, make sure the account you’re using has downloaded your app from Google Play at least once before using the account to test in-app updates.
+-   Because Google Play can only update an app to a higher version code, make sure the app you are testing as a lower version code than the update version code.
+-   Make sure the account is eligible and the Google Play cache is up to date. To do so, while logged into the Google Play Store account on the test device, proceed as follows:
+    1.  Make sure you completely [close the Google Play Store App](https://support.google.com/android/answer/9079646#close_apps).
+    2.  Open the Google Play Store app and go to the **My Apps & Games** tab.
+    3.  If the app you are testing doesn’t appear with an available update, check that you’ve properly [set up your testing tracks](https://support.google.com/googleplay/android-developer/answer/3131213?hl=en).
 ## License    
 
     Copyright 2019 Dionysios Karatzas

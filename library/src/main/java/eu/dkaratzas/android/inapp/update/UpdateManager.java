@@ -171,7 +171,7 @@ public class UpdateManager implements LifecycleObserver {
     }
     //endregion
 
-    //region Private Methods
+    //region Methods
     public void checkForAppUpdate() {
 
         // Returns an intent object that you use to check for an update.
@@ -207,6 +207,9 @@ public class UpdateManager implements LifecycleObserver {
     public void completeUpdate() {
         appUpdateManager.completeUpdate();
     }
+    //endregion
+    
+    //region Private Methods
 
     private void startAppUpdateImmediate(AppUpdateInfo appUpdateInfo) {
         try {

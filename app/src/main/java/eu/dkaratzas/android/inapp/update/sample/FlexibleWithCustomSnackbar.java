@@ -44,7 +44,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
         updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .setMode(UpdateMode.FLEXIBLE)
-                //default is true. If is set to false you,
+                // default is true. If is set to false you,
                 // have to manage the user confirmation when
                 // you detect the InstallStatus.DOWNLOADED status,
                 .setUseDefaultSnackbar(false)
@@ -59,19 +59,30 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
             if (resultCode != RESULT_OK) {
                 // If the update is cancelled or fails,
                 // you can request to start the update again.
+                updateManager.checkForAppUpdate();
+
                 Log.d(TAG, "Update flow failed! Result code: " + resultCode);
             }
         }
 
     }
 
+    // InAppUpdateHandler implementation
+
     @Override
     public void onUpdateError(int code, Throwable error) {
+        /*
+         * Called when some error occurred. See Constants class for more details
+         */
         Log.d(TAG, "code: " + code, error);
     }
 
     @Override
     public void onStatusUpdate(UpdateStatus status) {
+        /*
+         * Called when the update status change occurred. See Constants class for more details
+         */
+
         if (status == UpdateStatus.DOWNLOADED) {
 
             View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
