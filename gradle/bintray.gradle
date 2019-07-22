@@ -68,6 +68,7 @@ task sourcesJar(type: Jar) {
 }
 
 task javadoc(type: Javadoc) {
+    group = 'publishing'
     failOnError false
     source = android.sourceSets.main.java.sourceFiles
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
@@ -89,8 +90,6 @@ Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 bintray {
-    javadoc
-    install
     user = properties.getProperty("bintray.user")
     key = properties.getProperty("bintray.apikey")
 
