@@ -16,6 +16,7 @@
 
 package eu.dkaratzas.android.inapp.update.sample;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -51,9 +52,11 @@ public class Immediate extends AppCompatActivity implements UpdateManager.InAppU
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == REQ_CODE_VERSION_UPDATE) {
-            if (resultCode != RESULT_OK) {
-                // If the update is cancelled or fails,
+            if (resultCode == Activity.RESULT_CANCELED) {
+                // If the update is cancelled by the user,
                 // you can request to start the update again.
+                updateManager.checkForAppUpdate();
+
                 Log.d(TAG, "Update flow failed! Result code: " + resultCode);
             }
         }

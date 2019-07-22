@@ -108,7 +108,7 @@ public class UpdateManager implements LifecycleObserver {
                     && installState.installStatus() == InstallStatus.DOWNLOADED) {
                 // After the update is downloaded, show a notification
                 // and request user confirmation to restart the app.
-                popupSnackbarForCompleteUpdate();
+                popupSnackbarForUserConfirmation();
             }
         }
     };
@@ -163,7 +163,6 @@ public class UpdateManager implements LifecycleObserver {
         appUpdateManager.registerListener(installStateUpdatedListener);
     }
     //endregion
-
 
     // region Setters
     /**
@@ -235,7 +234,6 @@ public class UpdateManager implements LifecycleObserver {
     }
 
     //endregion
-
 
     //region Lifecycle
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -332,7 +330,7 @@ public class UpdateManager implements LifecycleObserver {
      * Displays the snackbar notification and call to action.
      * Needed only for Flexible app update
      */
-    private void popupSnackbarForCompleteUpdate() {
+    private void popupSnackbarForUserConfirmation() {
         if (!useCustomNotification) {
             if (snackbar != null && snackbar.isShownOrQueued())
                 snackbar.dismiss();
@@ -357,7 +355,7 @@ public class UpdateManager implements LifecycleObserver {
                         // If the update is downloaded but not installed,
                         // notify the user to complete the update.
                         if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
-                            popupSnackbarForCompleteUpdate();
+                            popupSnackbarForUserConfirmation();
                             reportStatus(UpdateStatus.DOWNLOADED.id());
                             Log.d(LOG_TAG, "checkNewAppVersionState(): resuming flexible update. Code: " + appUpdateInfo.updateAvailability());
                         }

@@ -115,7 +115,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
 
 <img src="https://developer.android.com/images/app-bundle/immediate_flow.png" alt="" width="528"></p>
 
-To perform an Immediate update,  needs only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
+To perform an Immediate update,  need only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
 ```java
 updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
             .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
@@ -124,25 +124,27 @@ updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
 updateManager.checkForAppUpdate();
 ``` 
 
----
 
-**Note:** You can listen to the `onActivityResult()` callback to know if you need to request another update in case of a failure.
+### Forced updates
+There are sometimes, that we need to force all users to get a critical update. With Immediate update mode we can achieve such a blocking update mechanism. We need to override `onActivityResult` to detect if the user cancelled the process since the immediate screen can be closed through the back button, and start the update process again.
 
 ```java
 @Override
 protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
     if (requestCode == REQ_CODE_VERSION_UPDATE) {
-        if (resultCode != RESULT_OK) {
-            // If the update is cancelled or fails,
+        if (resultCode == RESULT_CANCELED) {
+            // If the update is cancelled by the user,
             // you can request to start the update again.
             updateManager.checkForAppUpdate();
-            
+                
             Log.d(TAG, "Update flow failed! Result code: " + resultCode);
         }
     }
 }
 ```
 
+**Note:** You can decide which update should be forced by using for example `Firebase Remote Config` or a `Configuration file hosted on your server`
+ 
 ## Troubleshoot
 -   In-app updates works only with devices running Android 5.0 (API level 21) or higher.
 -   Testing this won’t work on a debug build. You would need a release build signed with the same key you use to sign your app before uploading to the Play Store. It would be a good time to use the internal testing track.
