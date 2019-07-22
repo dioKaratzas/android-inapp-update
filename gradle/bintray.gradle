@@ -14,7 +14,7 @@ ext {
     siteUrl = 'https://github.com/dnKaratzas/android-inapp-update'
     gitUrl = 'https://github.com/dnKaratzas/android-inapp-update.git'
 
-    libraryVersion = '1.0.0'
+    libraryVersion = '1.0.1'
 
     developerId = 'dkaratzas'
     developerName = 'Dionysios Karatzas'
@@ -68,8 +68,11 @@ task sourcesJar(type: Jar) {
 }
 
 task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
+    failOnError false
+    source = android.sourceSets.main.java.sourceFiles
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    classpath += configurations.compile
+    destinationDir = file("${rootDir}/docs/javadoc")
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -86,6 +89,7 @@ Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 bintray {
+    javadoc
     install
     user = properties.getProperty("bintray.user")
     key = properties.getProperty("bintray.apikey")

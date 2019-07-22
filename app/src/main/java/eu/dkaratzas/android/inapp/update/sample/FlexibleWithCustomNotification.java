@@ -31,9 +31,9 @@ import eu.dkaratzas.android.inapp.update.UpdateManager;
 import static eu.dkaratzas.android.inapp.update.Constants.UpdateMode;
 import static eu.dkaratzas.android.inapp.update.Constants.UpdateStatus;
 
-public class FlexibleWithCustomSnackbar extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
+public class FlexibleWithCustomNotification extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
     private static final int REQ_CODE_VERSION_UPDATE = 530;
-    private static final String TAG = "FlexibleCustomSnackbar";
+    private static final String TAG = "FlexibleWithCustomNot";
     private UpdateManager updateManager;
 
     @Override
@@ -42,13 +42,13 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
         setContentView(R.layout.activity_main);
 
         updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.FLEXIBLE)
-                // default is true. If is set to false you,
+                .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+                .mode(UpdateMode.FLEXIBLE)
+                // default is false. If is set to true you,
                 // have to manage the user confirmation when
                 // you detect the InstallStatus.DOWNLOADED status,
-                .setUseDefaultSnackbar(false)
-                .setHandler(this);
+                .useCustomNotification(true)
+                .handler(this);
 
         updateManager.checkForAppUpdate();
     }
@@ -80,7 +80,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
     @Override
     public void onStatusUpdate(UpdateStatus status) {
         /*
-         * Called when the update status change occurred. See Constants class for more details
+         * If the update downloaded, notify user and complete the update
          */
 
         if (status == UpdateStatus.DOWNLOADED) {
@@ -94,8 +94,10 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
             snackbar.setAction("RESTART", new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
                     // Triggers the completion of the update of the app for the flexible flow.
                     updateManager.completeUpdate();
+
                 }
             });
 

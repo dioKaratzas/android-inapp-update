@@ -42,12 +42,38 @@ import com.google.android.play.core.tasks.Task;
 
 import static eu.dkaratzas.android.inapp.update.Constants.*;
 
+/**
+ * A simple implementation of the Android In-App Update API.
+ * <p>
+ * <div class="special reference">
+ * <h3>In-App Updates</h3>
+ * <p>For more information about In-App Updates you can check the official
+ * <a href="https://developer.android.com/guide/app-bundle/in-app-updates">documentation</a>
+ * </p>
+ * </div>
+ */
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 public class UpdateManager implements LifecycleObserver {
 
+    /**
+     * Callback methods where update events are reported.
+     */
     public interface InAppUpdateHandler {
+        /**
+         * On update error.
+         *
+         * @param code  the code
+         * @param error the error
+         */
         void onUpdateError(int code, Throwable error);
 
+
+        /**
+         * Monitoring the update state of the flexible downloads.
+         * For immediate updates, Google Play takes care of downloading and installing the update for you.
+         *
+         * @param status the status
+         */
         void onStatusUpdate(UpdateStatus status);
     }
 
@@ -60,7 +86,7 @@ public class UpdateManager implements LifecycleObserver {
     private String snackBarAction = "RESTART";
     private UpdateMode mode = UpdateMode.FLEXIBLE;
     private boolean resumeUpdates = true;
-    private boolean useDefaultSnackbar = true;
+    private boolean useCustomNotification = false;
     private InAppUpdateHandler handler;
     private Snackbar snackbar;
 
@@ -91,6 +117,12 @@ public class UpdateManager implements LifecycleObserver {
     //region Constructor
     private static UpdateManager instance;
 
+    /**
+     * Creates a builder that uses the default requestCode.
+     *
+     * @param activity the activity
+     * @return a new {@link UpdateManager} instance
+     */
     public static UpdateManager Builder(AppCompatActivity activity) {
         if (instance == null) {
             instance = new UpdateManager(activity);
@@ -98,6 +130,13 @@ public class UpdateManager implements LifecycleObserver {
         return instance;
     }
 
+    /**
+     * Creates a builder
+     *
+     * @param activity    the activity
+     * @param requestCode the request code to later monitor this update request via onActivityResult()
+     * @return a new {@link UpdateManager} instance
+     */
     public static UpdateManager Builder(AppCompatActivity activity, int requestCode) {
         if (instance == null) {
             instance = new UpdateManager(activity, requestCode);
@@ -107,7 +146,7 @@ public class UpdateManager implements LifecycleObserver {
 
     private UpdateManager(AppCompatActivity activity) {
         this.activity = activity;
-
+        setupSnackbar();
         activity.getLifecycle().addObserver(this);
 
         appUpdateManager = AppUpdateManagerFactory.create(this.activity);
@@ -117,7 +156,7 @@ public class UpdateManager implements LifecycleObserver {
     private UpdateManager(AppCompatActivity activity, int requestCode) {
         this.activity = activity;
         this.requestCode = requestCode;
-
+        setupSnackbar();
         activity.getLifecycle().addObserver(this);
 
         appUpdateManager = AppUpdateManagerFactory.create(this.activity);
@@ -125,38 +164,78 @@ public class UpdateManager implements LifecycleObserver {
     }
     //endregion
 
+
     // region Setters
-    public UpdateManager setMode(UpdateMode mode) {
+    /**
+     * Set the update mode.
+     *
+     * @param mode the update mode
+     * @return the update manager instance
+     */
+    public UpdateManager mode(UpdateMode mode) {
         this.mode = mode;
         return this;
     }
 
-    public UpdateManager setSnackBarMessage(String snackBarMessage) {
-        this.snackBarMessage = snackBarMessage;
-        return this;
-    }
-
-    public UpdateManager setSnackBarAction(String snackBarAction) {
-        this.snackBarAction = snackBarAction;
-        return this;
-    }
-
-    public UpdateManager setResumeUpdates(boolean resumeUpdates) {
+    /**
+     * Checks that the update is not stalled during 'onResume()'.
+     * If the update is downloaded but not installed, will notify
+     * the user to complete the update.
+     *
+     * @param resumeUpdates the resume updates
+     * @return the update manager instance
+     */
+    public UpdateManager resumeUpdates(boolean resumeUpdates) {
         this.resumeUpdates = resumeUpdates;
         return this;
     }
 
-    public UpdateManager setHandler(InAppUpdateHandler handler) {
+    /**
+     * Set the callback handler
+     *
+     * @param handler the handler
+     * @return the update manager instance
+     */
+    public UpdateManager handler(InAppUpdateHandler handler) {
         this.handler = handler;
         return this;
     }
 
-    public UpdateManager setUseDefaultSnackbar(boolean useDefaultSnackbar) {
-        this.useDefaultSnackbar = useDefaultSnackbar;
+    /**
+     * Use custom notification for the user confirmation needed by the {@link UpdateMode#FLEXIBLE} flow.
+     * If this will set to true, need to implement the {@link InAppUpdateHandler} and listen for the {@link UpdateStatus#DOWNLOADED} status
+     * via {@link InAppUpdateHandler#onStatusUpdate} callback. Then a notification (or some other UI indication) can be used,
+     * to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must
+     * call the {@link #completeUpdate} method to finish the update.
+     *
+     * @param useCustomNotification use custom user confirmation
+     * @return the update manager instance
+     */
+    public UpdateManager useCustomNotification(boolean useCustomNotification) {
+        this.useCustomNotification = useCustomNotification;
+        return this;
+    }
+
+    public UpdateManager snackBarMessage(String snackBarMessage) {
+        this.snackBarMessage = snackBarMessage;
+        setupSnackbar();
+        return this;
+    }
+
+    public UpdateManager snackBarAction(String snackBarAction) {
+        this.snackBarAction = snackBarAction;
+        setupSnackbar();
+        return this;
+    }
+
+
+    public UpdateManager snackBarActionColor(int color) {
+        snackbar.setActionTextColor(color);
         return this;
     }
 
     //endregion
+
 
     //region Lifecycle
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -165,13 +244,19 @@ public class UpdateManager implements LifecycleObserver {
             checkNewAppVersionState();
     }
 
+
     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     public void onDestroy() {
-        unregisterInstallStateUpdListener();
+        unregisterListener();
     }
     //endregion
 
     //region Methods
+
+    /**
+     * Check for update availability. If there will be an update available
+     * will start the update process with the selected {@link UpdateMode}.
+     */
     public void checkForAppUpdate() {
 
         // Returns an intent object that you use to check for an update.
@@ -203,12 +288,14 @@ public class UpdateManager implements LifecycleObserver {
 
     }
 
-    // Triggers the completion of the update of the app for the flexible flow.
+    /**
+     * Triggers the completion of the app update for the flexible flow.
+     */
     public void completeUpdate() {
         appUpdateManager.completeUpdate();
     }
     //endregion
-    
+
     //region Private Methods
 
     private void startAppUpdateImmediate(AppUpdateInfo appUpdateInfo) {
@@ -246,21 +333,11 @@ public class UpdateManager implements LifecycleObserver {
      * Needed only for Flexible app update
      */
     private void popupSnackbarForCompleteUpdate() {
-        if (useDefaultSnackbar) {
-            View rootView = activity.getWindow().getDecorView().findViewById(android.R.id.content);
-            if (snackbar != null)
+        if (!useCustomNotification) {
+            if (snackbar != null && snackbar.isShownOrQueued())
                 snackbar.dismiss();
 
-            snackbar = Snackbar.make(rootView,
-                    snackBarMessage,
-                    Snackbar.LENGTH_INDEFINITE);
-            snackbar.setAction(snackBarAction, new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    // Triggers the completion of the update of the app for the flexible flow.
-                    appUpdateManager.completeUpdate();
-                }
-            });
+
             snackbar.show();
         }
     }
@@ -298,10 +375,23 @@ public class UpdateManager implements LifecycleObserver {
 
     }
 
-    /**
-     * Needed only for FLEXIBLE update
-     */
-    private void unregisterInstallStateUpdListener() {
+    private void setupSnackbar() {
+        View rootView = activity.getWindow().getDecorView().findViewById(android.R.id.content);
+
+        snackbar = Snackbar.make(rootView,
+                snackBarMessage,
+                Snackbar.LENGTH_INDEFINITE);
+
+        snackbar.setAction(snackBarAction, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Triggers the completion of the update of the app for the flexible flow.
+                appUpdateManager.completeUpdate();
+            }
+        });
+    }
+
+    private void unregisterListener() {
         if (appUpdateManager != null && installStateUpdatedListener != null)
             appUpdateManager.unregisterListener(installStateUpdatedListener);
     }

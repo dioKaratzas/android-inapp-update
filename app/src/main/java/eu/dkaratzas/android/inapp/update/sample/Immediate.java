@@ -42,8 +42,8 @@ public class Immediate extends AppCompatActivity implements UpdateManager.InAppU
         setContentView(R.layout.activity_main);
 
         updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.IMMEDIATE);
+                .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+                .mode(UpdateMode.IMMEDIATE);
 
         updateManager.checkForAppUpdate();
     }

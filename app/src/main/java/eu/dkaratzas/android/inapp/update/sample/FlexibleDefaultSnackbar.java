@@ -38,12 +38,12 @@ public class FlexibleDefaultSnackbar extends AppCompatActivity implements Update
         setContentView(R.layout.activity_main);
 
         UpdateManager updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.FLEXIBLE)
-                .setUseDefaultSnackbar(true) //default is true
-                .setSnackBarMessage("An update has just been downloaded.")
-                .setSnackBarAction("RESTART")
-                .setHandler(this);
+                .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+                .mode(UpdateMode.FLEXIBLE)
+                .useCustomNotification(false) //default is false
+                .snackBarMessage("An update has just been downloaded.")
+                .snackBarAction("RESTART")
+                .handler(this);
 
         updateManager.checkForAppUpdate();
     }

@@ -23,7 +23,7 @@ buildscript {
 * Add the dependency to your app `build.gradle` file
 ```groovy
 dependencies {  
-    implementation 'eu.dkaratzas:android-inapp-update:1.0.0'
+    implementation 'eu.dkaratzas:android-inapp-update:1.0.1'
 }
 ```
   
@@ -45,18 +45,17 @@ protected void onCreate(Bundle savedInstanceState) {
     setContentView(R.layout.activity_main);
 
     UpdateManager updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-            .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-            .setMode(UpdateMode.FLEXIBLE)
-            .setUseDefaultSnackbar(true) //default is true
-            .setSnackBarMessage("An update has just been downloaded.")
-            .setSnackBarAction("RESTART")
-            .setHandler(this);
+                .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+                .mode(UpdateMode.FLEXIBLE)
+                .snackBarMessage("An update has just been downloaded.")
+                .snackBarAction("RESTART")
+                .handler(this);
 
     updateManager.checkForAppUpdate();
 }
 ```  
 
-* With custom user confirmation, need to set the `setUseDefaultSnackbar(false)` and monitor the update for the `UpdateStatus.DOWNLOADED` status.
+* With custom user confirmation, need to set the `useCustomNotification(true)` and monitor the update for the `UpdateStatus.DOWNLOADED` status.
 Then a notification (or some other UI indication) can be used, to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must call the `completeUpdate()` method to finish the update.
 ```java
 public class FlexibleWithCustomSnackbar extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
@@ -70,13 +69,13 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
         setContentView(R.layout.activity_main);
 
         updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-                .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-                .setMode(UpdateMode.FLEXIBLE)
-                // default is true. If is set to false you,
+                .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+                .mode(UpdateMode.FLEXIBLE)
+                // default is false. If is set to true you,
                 // have to manage the user confirmation when
                 // you detect the InstallStatus.DOWNLOADED status,
-                .setUseDefaultSnackbar(false)
-                .setHandler(this);
+                .useCustomNotification(true)
+                .handler(this);
 
         updateManager.checkForAppUpdate();
     }
@@ -117,8 +116,8 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
 To perform an Immediate update,  needs only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
 ```java
 updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-      .setResumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-      .setMode(UpdateMode.IMMEDIATE);
+            .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+            .mode(UpdateMode.IMMEDIATE);
 
 updateManager.checkForAppUpdate();
 ``` 

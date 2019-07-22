@@ -9,7 +9,7 @@ android {
         minSdkVersion 14
         targetSdkVersion 29
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -36,4 +36,6 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
 }
 
-//apply from: 'bintray.gradle'
+//apply from: "${rootDir}/gradle/bintray.gradle"
+
+
