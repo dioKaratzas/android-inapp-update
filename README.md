@@ -46,7 +46,7 @@ protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    UpdateManager inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+    InAppUpdateManager inAppUpdateManager = InAppUpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .mode(UpdateMode.FLEXIBLE)
                 .snackBarMessage("An update has just been downloaded.")
@@ -60,17 +60,17 @@ protected void onCreate(Bundle savedInstanceState) {
 * With custom user confirmation, need to set the `useCustomNotification(true)` and monitor the update for the `UpdateStatus.DOWNLOADED` status.
 Then a notification (or some other UI indication) can be used, to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must call the `completeUpdate()` method to finish the update.
 ```java
-public class FlexibleWithCustomSnackbar extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
+public class FlexibleWithCustomNotification extends AppCompatActivity implements InAppUpdateManager.InAppUpdateHandler {
     private static final int REQ_CODE_VERSION_UPDATE = 530;
-    private static final String TAG = "FlexibleCustomSnackbar";
-    private UpdateManager inAppUpdateManager;
+    private static final String TAG = "Sample";
+    private InAppUpdateManager inAppUpdateManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+        inAppUpdateManager = InAppUpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .mode(UpdateMode.FLEXIBLE)
                 // default is false. If is set to true you,
@@ -85,8 +85,12 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
     // InAppUpdateHandler implementation
     
     @Override
-    public void onStatusUpdate(UpdateStatus status) {
-        if (status == UpdateStatus.DOWNLOADED) {
+    public void onInAppUpdateStatus(InAppUpdateStatus status) {
+        /*
+         * If the update downloaded, ask user confirmation and complete the update
+         */
+
+        if (status.isDownloaded()) {
 
             View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
@@ -94,19 +98,16 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
                     "An update has just been downloaded.",
                     Snackbar.LENGTH_INDEFINITE);
 
-            snackbar.setAction("RESTART", new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    // Triggers the completion of the update of the app for the flexible flow.
-                    inAppUpdateManager.completeUpdate();
-                }
+            snackbar.setAction("RESTART", view -> {
+
+                // Triggers the completion of the update of the app for the flexible flow.
+                updateManager.completeUpdate();
+
             });
 
             snackbar.show();
 
         }
-
-        Log.d(TAG, "status: " + status.id());
     }
 }
 ```  
@@ -117,11 +118,11 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
 
 To perform an Immediate update,  need only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
 ```java
-inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
-            .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
-            .mode(UpdateMode.IMMEDIATE);
+InAppUpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+        .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
+        .mode(UpdateMode.IMMEDIATE)
+        .checkForAppUpdate();
 
-inAppUpdateManager.checkForAppUpdate();
 ``` 
 
 
@@ -132,14 +133,15 @@ There are sometimes, that we need to force all users to get a critical update. W
 @Override
 protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
     if (requestCode == REQ_CODE_VERSION_UPDATE) {
-        if (resultCode == RESULT_CANCELED) {
+        if (resultCode == Activity.RESULT_CANCELED) {
             // If the update is cancelled by the user,
             // you can request to start the update again.
-            inAppUpdateManager.checkForAppUpdate();
-                
+            updateManager.checkForAppUpdate();
+
             Log.d(TAG, "Update flow failed! Result code: " + resultCode);
         }
     }
+    super.onActivityResult(requestCode, resultCode, data);
 }
 ```
 
