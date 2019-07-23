@@ -16,7 +16,6 @@
 
 package eu.dkaratzas.android.inapp.update;
 
-import android.app.Activity;
 import android.content.IntentSender;
 import android.os.Build;
 import android.util.Log;
@@ -40,7 +39,7 @@ import com.google.android.play.core.install.model.UpdateAvailability;
 import com.google.android.play.core.tasks.OnSuccessListener;
 import com.google.android.play.core.tasks.Task;
 
-import static eu.dkaratzas.android.inapp.update.Constants.*;
+import static eu.dkaratzas.android.inapp.update.Constants.UpdateMode;
 
 /**
  * A simple implementation of the Android In-App Update API.
@@ -53,7 +52,7 @@ import static eu.dkaratzas.android.inapp.update.Constants.*;
  * </div>
  */
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-public class UpdateManager implements LifecycleObserver {
+public class InAppUpdateManager implements LifecycleObserver {
 
     /**
      * Callback methods where update events are reported.
@@ -65,7 +64,7 @@ public class UpdateManager implements LifecycleObserver {
          * @param code  the code
          * @param error the error
          */
-        void onUpdateError(int code, Throwable error);
+        void onInAppUpdateError(int code, Throwable error);
 
 
         /**
@@ -74,12 +73,12 @@ public class UpdateManager implements LifecycleObserver {
          *
          * @param status the status
          */
-        void onStatusUpdate(UpdateStatus status);
+        void onInAppUpdateStatus(InAppUpdateStatus status);
     }
 
     // region Declarations
-    private static final String LOG_TAG = "UpdateManager";
-    private Activity activity;
+    private static final String LOG_TAG = "InAppUpdateManager";
+    private AppCompatActivity activity;
     private AppUpdateManager appUpdateManager;
     private int requestCode = 64534;
     private String snackBarMessage = "An update has just been downloaded.";
@@ -89,23 +88,18 @@ public class UpdateManager implements LifecycleObserver {
     private boolean useCustomNotification = false;
     private InAppUpdateHandler handler;
     private Snackbar snackbar;
+    private InAppUpdateStatus inAppUpdateStatus = new InAppUpdateStatus();
 
 
     private InstallStateUpdatedListener installStateUpdatedListener = new InstallStateUpdatedListener() {
         @Override
         public void onStateUpdate(InstallState installState) {
-            int status = installState.installStatus();
-            switch (status) {
-                case InstallStatus.DOWNLOADING:
-                case InstallStatus.DOWNLOADED:
-                case InstallStatus.FAILED:
-                case InstallStatus.CANCELED:
-                    reportStatus(status);
-                    break;
-            }
+            inAppUpdateStatus.setInstallState(installState);
+
+            reportStatus();
+
             // Show module progress, log state, or install the update.
-            if (mode == UpdateMode.FLEXIBLE
-                    && installState.installStatus() == InstallStatus.DOWNLOADED) {
+            if (installState.installStatus() == InstallStatus.DOWNLOADED) {
                 // After the update is downloaded, show a notification
                 // and request user confirmation to restart the app.
                 popupSnackbarForUserConfirmation();
@@ -115,17 +109,17 @@ public class UpdateManager implements LifecycleObserver {
     //endregion
 
     //region Constructor
-    private static UpdateManager instance;
+    private static InAppUpdateManager instance;
 
     /**
      * Creates a builder that uses the default requestCode.
      *
      * @param activity the activity
-     * @return a new {@link UpdateManager} instance
+     * @return a new {@link InAppUpdateManager} instance
      */
-    public static UpdateManager Builder(AppCompatActivity activity) {
+    public static InAppUpdateManager Builder(AppCompatActivity activity) {
         if (instance == null) {
-            instance = new UpdateManager(activity);
+            instance = new InAppUpdateManager(activity);
         }
         return instance;
     }
@@ -135,43 +129,52 @@ public class UpdateManager implements LifecycleObserver {
      *
      * @param activity    the activity
      * @param requestCode the request code to later monitor this update request via onActivityResult()
-     * @return a new {@link UpdateManager} instance
+     * @return a new {@link InAppUpdateManager} instance
      */
-    public static UpdateManager Builder(AppCompatActivity activity, int requestCode) {
+    public static InAppUpdateManager Builder(AppCompatActivity activity, int requestCode) {
         if (instance == null) {
-            instance = new UpdateManager(activity, requestCode);
+            instance = new InAppUpdateManager(activity, requestCode);
         }
         return instance;
     }
 
-    private UpdateManager(AppCompatActivity activity) {
+    private InAppUpdateManager(AppCompatActivity activity) {
         this.activity = activity;
         setupSnackbar();
         activity.getLifecycle().addObserver(this);
 
-        appUpdateManager = AppUpdateManagerFactory.create(this.activity);
-        appUpdateManager.registerListener(installStateUpdatedListener);
+        init();
     }
 
-    private UpdateManager(AppCompatActivity activity, int requestCode) {
+    private InAppUpdateManager(AppCompatActivity activity, int requestCode) {
         this.activity = activity;
         this.requestCode = requestCode;
+
+        init();
+    }
+
+    private void init() {
         setupSnackbar();
         activity.getLifecycle().addObserver(this);
 
         appUpdateManager = AppUpdateManagerFactory.create(this.activity);
-        appUpdateManager.registerListener(installStateUpdatedListener);
+
+        if (mode == UpdateMode.FLEXIBLE)
+            appUpdateManager.registerListener(installStateUpdatedListener);
+
+        checkForUpdate(false);
     }
     //endregion
 
     // region Setters
+
     /**
      * Set the update mode.
      *
      * @param mode the update mode
      * @return the update manager instance
      */
-    public UpdateManager mode(UpdateMode mode) {
+    public InAppUpdateManager mode(UpdateMode mode) {
         this.mode = mode;
         return this;
     }
@@ -184,7 +187,7 @@ public class UpdateManager implements LifecycleObserver {
      * @param resumeUpdates the resume updates
      * @return the update manager instance
      */
-    public UpdateManager resumeUpdates(boolean resumeUpdates) {
+    public InAppUpdateManager resumeUpdates(boolean resumeUpdates) {
         this.resumeUpdates = resumeUpdates;
         return this;
     }
@@ -195,40 +198,40 @@ public class UpdateManager implements LifecycleObserver {
      * @param handler the handler
      * @return the update manager instance
      */
-    public UpdateManager handler(InAppUpdateHandler handler) {
+    public InAppUpdateManager handler(InAppUpdateHandler handler) {
         this.handler = handler;
         return this;
     }
 
     /**
      * Use custom notification for the user confirmation needed by the {@link UpdateMode#FLEXIBLE} flow.
-     * If this will set to true, need to implement the {@link InAppUpdateHandler} and listen for the {@link UpdateStatus#DOWNLOADED} status
-     * via {@link InAppUpdateHandler#onStatusUpdate} callback. Then a notification (or some other UI indication) can be used,
+     * If this will set to true, need to implement the {@link InAppUpdateHandler} and listen for the {@link InAppUpdateStatus#isDownloaded()} status
+     * via {@link InAppUpdateHandler#onInAppUpdateStatus} callback. Then a notification (or some other UI indication) can be used,
      * to inform the user that installation is ready and requests user confirmation to restart the app. The confirmation must
      * call the {@link #completeUpdate} method to finish the update.
      *
      * @param useCustomNotification use custom user confirmation
      * @return the update manager instance
      */
-    public UpdateManager useCustomNotification(boolean useCustomNotification) {
+    public InAppUpdateManager useCustomNotification(boolean useCustomNotification) {
         this.useCustomNotification = useCustomNotification;
         return this;
     }
 
-    public UpdateManager snackBarMessage(String snackBarMessage) {
+    public InAppUpdateManager snackBarMessage(String snackBarMessage) {
         this.snackBarMessage = snackBarMessage;
         setupSnackbar();
         return this;
     }
 
-    public UpdateManager snackBarAction(String snackBarAction) {
+    public InAppUpdateManager snackBarAction(String snackBarAction) {
         this.snackBarAction = snackBarAction;
         setupSnackbar();
         return this;
     }
 
 
-    public UpdateManager snackBarActionColor(int color) {
+    public InAppUpdateManager snackBarActionColor(int color) {
         snackbar.setActionTextColor(color);
         return this;
     }
@@ -256,34 +259,7 @@ public class UpdateManager implements LifecycleObserver {
      * will start the update process with the selected {@link UpdateMode}.
      */
     public void checkForAppUpdate() {
-
-        // Returns an intent object that you use to check for an update.
-        Task<AppUpdateInfo> appUpdateInfoTask = appUpdateManager.getAppUpdateInfo();
-
-        // Checks that the platform will allow the specified type of update.
-        appUpdateInfoTask.addOnSuccessListener(new OnSuccessListener<AppUpdateInfo>() {
-            @Override
-            public void onSuccess(AppUpdateInfo appUpdateInfo) {
-                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
-                    // Request the update.
-                    if (mode == UpdateMode.FLEXIBLE && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
-                        // Start an update.
-                        startAppUpdateFlexible(appUpdateInfo);
-                    } else if (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
-                        // Start an update.
-                        startAppUpdateImmediate(appUpdateInfo);
-                    }
-
-                    Log.d(LOG_TAG, "checkForAppUpdate(): Update available. Version Code: " + appUpdateInfo.availableVersionCode());
-                } else {
-                    if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_NOT_AVAILABLE)
-                        reportStatus(UpdateStatus.UPDATE_NOT_AVAILABLE.id());
-
-                    Log.d(LOG_TAG, "checkForAppUpdate(): No Update available. Code: " + appUpdateInfo.updateAvailability());
-                }
-            }
-        });
-
+        checkForUpdate(true);
     }
 
     /**
@@ -295,6 +271,45 @@ public class UpdateManager implements LifecycleObserver {
     //endregion
 
     //region Private Methods
+
+    /**
+     * Check for update availability. If there will be an update available
+     * will start the update process with the selected {@link UpdateMode}.
+     */
+    private void checkForUpdate(final boolean startUpdate) {
+
+        // Returns an intent object that you use to check for an update.
+        Task<AppUpdateInfo> appUpdateInfoTask = appUpdateManager.getAppUpdateInfo();
+
+
+        // Checks that the platform will allow the specified type of update.
+        appUpdateInfoTask.addOnSuccessListener(new OnSuccessListener<AppUpdateInfo>() {
+            @Override
+            public void onSuccess(AppUpdateInfo appUpdateInfo) {
+                inAppUpdateStatus.setAppUpdateInfo(appUpdateInfo);
+
+                if (startUpdate) {
+                    if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+                        // Request the update.
+                        if (mode == UpdateMode.FLEXIBLE && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+                            // Start an update.
+                            startAppUpdateFlexible(appUpdateInfo);
+                        } else if (appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+                            // Start an update.
+                            startAppUpdateImmediate(appUpdateInfo);
+                        }
+
+                        Log.d(LOG_TAG, "checkForAppUpdate(): Update available. Version Code: " + appUpdateInfo.availableVersionCode());
+                    } else if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_NOT_AVAILABLE) {
+                        Log.d(LOG_TAG, "checkForAppUpdate(): No Update available. Code: " + appUpdateInfo.updateAvailability());
+                    }
+                }
+
+                reportStatus();
+            }
+        });
+
+    }
 
     private void startAppUpdateImmediate(AppUpdateInfo appUpdateInfo) {
         try {
@@ -351,12 +366,15 @@ public class UpdateManager implements LifecycleObserver {
                 .addOnSuccessListener(new OnSuccessListener<AppUpdateInfo>() {
                     @Override
                     public void onSuccess(AppUpdateInfo appUpdateInfo) {
+
+                        inAppUpdateStatus.setAppUpdateInfo(appUpdateInfo);
+
                         //FLEXIBLE:
                         // If the update is downloaded but not installed,
                         // notify the user to complete the update.
                         if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
                             popupSnackbarForUserConfirmation();
-                            reportStatus(UpdateStatus.DOWNLOADED.id());
+                            reportStatus();
                             Log.d(LOG_TAG, "checkNewAppVersionState(): resuming flexible update. Code: " + appUpdateInfo.updateAvailability());
                         }
 
@@ -396,13 +414,13 @@ public class UpdateManager implements LifecycleObserver {
 
     private void reportUpdateError(int errorCode, Throwable error) {
         if (handler != null) {
-            handler.onUpdateError(errorCode, error);
+            handler.onInAppUpdateError(errorCode, error);
         }
     }
 
-    private void reportStatus(int status) {
+    private void reportStatus() {
         if (handler != null) {
-            handler.onStatusUpdate(UpdateStatus.fromId(status));
+            handler.onInAppUpdateStatus(inAppUpdateStatus);
         }
     }
 

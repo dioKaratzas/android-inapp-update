@@ -46,14 +46,14 @@ protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    UpdateManager updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+    UpdateManager inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .mode(UpdateMode.FLEXIBLE)
                 .snackBarMessage("An update has just been downloaded.")
                 .snackBarAction("RESTART")
                 .handler(this);
 
-    updateManager.checkForAppUpdate();
+    inAppUpdateManager.checkForAppUpdate();
 }
 ```  
 
@@ -63,14 +63,14 @@ Then a notification (or some other UI indication) can be used, to inform the use
 public class FlexibleWithCustomSnackbar extends AppCompatActivity implements UpdateManager.InAppUpdateHandler {
     private static final int REQ_CODE_VERSION_UPDATE = 530;
     private static final String TAG = "FlexibleCustomSnackbar";
-    private UpdateManager updateManager;
+    private UpdateManager inAppUpdateManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+        inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
                 .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
                 .mode(UpdateMode.FLEXIBLE)
                 // default is false. If is set to true you,
@@ -79,7 +79,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
                 .useCustomNotification(true)
                 .handler(this);
 
-        updateManager.checkForAppUpdate();
+        inAppUpdateManager.checkForAppUpdate();
     }
 
     // InAppUpdateHandler implementation
@@ -98,7 +98,7 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
                 @Override
                 public void onClick(View view) {
                     // Triggers the completion of the update of the app for the flexible flow.
-                    updateManager.completeUpdate();
+                    inAppUpdateManager.completeUpdate();
                 }
             });
 
@@ -117,11 +117,11 @@ public class FlexibleWithCustomSnackbar extends AppCompatActivity implements Upd
 
 To perform an Immediate update,  need only to set the mode to `IMMEDIATE` and call the `checkForAppUpdate()` method.
 ```java
-updateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
+inAppUpdateManager = UpdateManager.Builder(this, REQ_CODE_VERSION_UPDATE)
             .resumeUpdates(true) // Resume the update, if the update was stalled. Default is true
             .mode(UpdateMode.IMMEDIATE);
 
-updateManager.checkForAppUpdate();
+inAppUpdateManager.checkForAppUpdate();
 ``` 
 
 
@@ -135,7 +135,7 @@ protected void onActivityResult(int requestCode, int resultCode, @Nullable Inten
         if (resultCode == RESULT_CANCELED) {
             // If the update is cancelled by the user,
             // you can request to start the update again.
-            updateManager.checkForAppUpdate();
+            inAppUpdateManager.checkForAppUpdate();
                 
             Log.d(TAG, "Update flow failed! Result code: " + resultCode);
         }
