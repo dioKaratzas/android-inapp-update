@@ -14,7 +14,7 @@ ext {
     siteUrl = 'https://github.com/dnKaratzas/android-inapp-update'
     gitUrl = 'https://github.com/dnKaratzas/android-inapp-update.git'
 
-    libraryVersion = '1.0.1'
+    libraryVersion = version
 
     developerId = 'dkaratzas'
     developerName = 'Dionysios Karatzas'
