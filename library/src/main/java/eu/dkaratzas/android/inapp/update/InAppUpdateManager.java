@@ -17,11 +17,9 @@
 package eu.dkaratzas.android.inapp.update;
 
 import android.content.IntentSender;
-import android.os.Build;
 import android.util.Log;
 import android.view.View;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
@@ -51,7 +49,6 @@ import static eu.dkaratzas.android.inapp.update.Constants.UpdateMode;
  * </p>
  * </div>
  */
-@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 public class InAppUpdateManager implements LifecycleObserver {
 
     /**

@@ -25,7 +25,7 @@ buildscript {
 * Add the dependency to your app `build.gradle` file
 ```groovy
 dependencies {  
-    implementation 'eu.dkaratzas:android-inapp-update:1.0.2'
+    implementation 'eu.dkaratzas:android-inapp-update:1.0.3'
 }
 ```
   
@@ -39,7 +39,7 @@ There are two update modes.
 
 ## Flexible
 <img src="https://developer.android.com/images/app-bundle/flexible_flow.png" alt="" width="825"></p>
-* With default user confirmation, the UpdateManager is monitoring the flexible update state, provide a default SnackBar that informs the user that installation is ready and requests user confirmation to restart the app.
+* With default user confirmation, the InAppUpdateManager is monitoring the flexible update state, provide a default SnackBar that informs the user that installation is ready and requests user confirmation to restart the app.
 ```java
 @Override
 protected void onCreate(Bundle savedInstanceState) {
@@ -101,7 +101,7 @@ public class FlexibleWithCustomNotification extends AppCompatActivity implements
             snackbar.setAction("RESTART", view -> {
 
                 // Triggers the completion of the update of the app for the flexible flow.
-                updateManager.completeUpdate();
+                inAppUpdateManager.completeUpdate();
 
             });
 
@@ -136,7 +136,7 @@ protected void onActivityResult(int requestCode, int resultCode, @Nullable Inten
         if (resultCode == Activity.RESULT_CANCELED) {
             // If the update is cancelled by the user,
             // you can request to start the update again.
-            updateManager.checkForAppUpdate();
+            inAppUpdateManager.checkForAppUpdate();
 
             Log.d(TAG, "Update flow failed! Result code: " + resultCode);
         }
