@@ -138,7 +138,6 @@ public class InAppUpdateManager implements LifecycleObserver {
     private InAppUpdateManager(AppCompatActivity activity) {
         this.activity = activity;
         setupSnackbar();
-        activity.getLifecycle().addObserver(this);
 
         init();
     }
@@ -152,9 +151,10 @@ public class InAppUpdateManager implements LifecycleObserver {
 
     private void init() {
         setupSnackbar();
-        activity.getLifecycle().addObserver(this);
 
         appUpdateManager = AppUpdateManagerFactory.create(this.activity);
+
+        activity.getLifecycle().addObserver(this);
 
         if (mode == UpdateMode.FLEXIBLE)
             appUpdateManager.registerListener(installStateUpdatedListener);

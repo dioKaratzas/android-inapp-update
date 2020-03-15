@@ -1,10 +1,10 @@
 apply plugin: 'com.android.library'
 
-version = '1.0.4'
+version = '1.0.5'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    buildToolsVersion "29.0.3"
 
     defaultConfig {
         minSdkVersion 14
@@ -28,15 +28,15 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.google.android.play:core:1.6.4'
+    implementation 'com.google.android.play:core:1.7.0'
     implementation 'androidx.annotation:annotation:1.1.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime:2.2.0-rc03'
-    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.2.0-rc03'
-    implementation 'com.google.android.material:material:1.0.0'
-    testImplementation 'junit:junit:4.12'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.2.0'
+    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.2.0'
+    implementation 'com.google.android.material:material:1.1.0'
+    testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test:runner:1.2.0'
 }
 
-//apply from: "${rootDir}/gradle/bintray.gradle"
+apply from: "${rootDir}/gradle/bintray.gradle"
 
 
